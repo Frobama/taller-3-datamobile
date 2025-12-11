@@ -7,6 +7,7 @@ interface BarChartProps {
 }
 
 export default function ProductBarChart({ data }: BarChartProps) {
+  console.log('BarChart data:', data)
   return (
     <div className="w-full h-80 bg-white p-4 rounded-lg shadow">
       <h3 className="text-lg font-semibold mb-4">Productos por Categoría</h3>

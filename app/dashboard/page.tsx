@@ -6,6 +6,10 @@ import { RootState } from '@/store/store'
 import { setProducts, setLoading, setError } from '@/store/slices/productsSlice'
 import FilterPanel from '@/components/filters/FilterPanel'
 import ProductBarChart from '@/components/charts/BarChart'
+import Areachart from '@/components/charts/AreaChart'
+import PieChart from '@/components/charts/PieChart'
+import LineChart from '@/components/charts/LineChart'
+import ChartCarousel from '@/components/charts/ChartCarousel'
 import Link from 'next/link'
 
 export default function Dashboard() {
@@ -78,6 +82,16 @@ export default function Dashboard() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }))
   }, [filteredProducts])
 
+  const fabricantesData = useMemo(() => {
+    const counts: Record<string, number> = {}
+    filteredProducts.forEach((p) => {
+      p.productofabricante.forEach((pf) => {
+        counts[pf.fabricante.name] = (counts[pf.fabricante.name] || 0) + 1
+      })
+    })
+    return Object.entries(counts).map(([name, value]) => ({ name, value }))
+  }, [filteredProducts])
+
   // Extraer categorías y fabricantes únicos
   const categorias = useMemo(
     () => [...new Set(products.flatMap((p) => p.categoriaproducto.map((cp) => cp.categoria.name)))],
@@ -119,7 +133,14 @@ export default function Dashboard() {
 
         {/* Gráfico */}
         <div className="mb-6">
-          <ProductBarChart data={categoriesData} />
+          <ChartCarousel
+            items={[
+              { id: 'bar', node: <ProductBarChart data={categoriesData} /> },
+              { id: 'area', node: <Areachart data={categoriesData} /> },
+              { id: 'pie', node: <PieChart data={fabricantesData} /> },
+              { id: 'line', node: <LineChart data={categoriesData} /> },
+            ]}
+          />
         </div>
 
         {/* Tabla de productos */}
