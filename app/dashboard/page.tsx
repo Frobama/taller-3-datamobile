@@ -34,6 +34,9 @@ export default function Dashboard() {
 
   // Filtrar y ordenar productos
   const filteredProducts = useMemo(() => {
+    // Verificar que products sea un array
+    if (!Array.isArray(products)) return []
+    
     let filtered = [...products]
 
     // Filtro por búsqueda
@@ -125,12 +128,18 @@ export default function Dashboard() {
 
   // Extraer categorías y fabricantes únicos
   const categorias = useMemo(
-    () => [...new Set(products.flatMap((p) => p.categoriaproducto.map((cp) => cp.categoria.name)))],
+    () => {
+      if (!Array.isArray(products)) return []
+      return [...new Set(products.flatMap((p) => p.categoriaproducto.map((cp) => cp.categoria.name)))]
+    },
     [products]
   )
 
   const fabricantes = useMemo(
-    () => [...new Set(products.flatMap((p) => p.productofabricante.map((pf) => pf.fabricante.name)))],
+    () => {
+      if (!Array.isArray(products)) return []
+      return [...new Set(products.flatMap((p) => p.productofabricante.map((pf) => pf.fabricante.name)))]
+    },
     [products]
   )
 
