@@ -19,6 +19,14 @@ export default function ProductDetail() {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Estado para el modal de edición
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    description: ''
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -29,6 +37,10 @@ export default function ProductDetail() {
         }
         const data = await response.json()
         setProduct(data)
+        setEditForm({
+          name: data.name,
+          description: data.description || ''
+        })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar producto')
       } finally {
@@ -40,21 +52,72 @@ export default function ProductDetail() {
   }, [params.id])
 
   const handleDelete = async () => {
-    if (!confirm('¿Estás seguro de eliminar este producto?')) return
+    if (!confirm('¿Estás seguro de eliminar este producto?\n\nEsta acción no se puede deshacer.')) return
 
+    setIsSubmitting(true)
     try {
       const response = await fetch(`/api/productos/${params.id}`, {
         method: 'DELETE',
       })
 
       if (response.ok) {
-        alert('Producto eliminado')
+        alert('Producto eliminado exitosamente')
         router.push('/dashboard')
       } else {
-        alert('Error al eliminar producto')
+        const errorData = await response.json()
+        alert(`Error al eliminar: ${errorData.error || 'Error desconocido'}`)
       }
     } catch (err) {
-      alert('Error al eliminar producto')
+      alert('Error de conexión al eliminar producto')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!editForm.name.trim()) {
+      alert('El nombre del producto es obligatorio')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const response = await fetch(`/api/productos/${params.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: editForm.name.trim(),
+          description: editForm.description.trim() || null,
+        }),
+      })
+
+      if (response.ok) {
+        const updatedProduct = await response.json()
+        setProduct(updatedProduct)
+        setIsEditModalOpen(false)
+        alert('Producto actualizado exitosamente')
+      } else {
+        const errorData = await response.json()
+        alert(`Error al actualizar: ${errorData.error || 'Error desconocido'}`)
+      }
+    } catch (err) {
+      alert('Error de conexión al actualizar producto')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const openEditModal = () => {
+    if (product) {
+      setEditForm({
+        name: product.name,
+        description: product.description || ''
+      })
+      setIsEditModalOpen(true)
     }
   }
 
@@ -90,7 +153,6 @@ export default function ProductDetail() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="mb-6">
           <Link
             href="/dashboard"
@@ -98,7 +160,7 @@ export default function ProductDetail() {
           >
             ← Volver al dashboard
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{product?.name}</h1>
         </div>
 
         {/* Card principal */}
@@ -107,13 +169,13 @@ export default function ProductDetail() {
           <div className="mb-6">
             <div className="flex items-center gap-4 mb-4">
               <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-                ID: {product.id}
+                ID: {product?.id}
               </span>
             </div>
 
             <h2 className="text-gray-700 font-semibold mb-2">Descripción</h2>
             <p className="text-gray-600">
-              {product.description || 'Sin descripción disponible'}
+              {product?.description || 'Sin descripción disponible'}
             </p>
           </div>
 
@@ -121,7 +183,7 @@ export default function ProductDetail() {
           <div className="mb-6">
             <h2 className="text-gray-700 font-semibold mb-2">Categorías</h2>
             <div className="flex flex-wrap gap-2">
-              {product.categoriaproducto.length > 0 ? (
+              {product?.categoriaproducto && product.categoriaproducto.length > 0 ? (
                 product.categoriaproducto.map((cp, index) => (
                   <span
                     key={index}
@@ -140,7 +202,7 @@ export default function ProductDetail() {
           <div className="mb-6">
             <h2 className="text-gray-700 font-semibold mb-2">Fabricantes</h2>
             <div className="flex flex-wrap gap-2">
-              {product.productofabricante.length > 0 ? (
+              {product?.productofabricante && product.productofabricante.length > 0 ? (
                 product.productofabricante.map((pf, index) => (
                   <span
                     key={index}
@@ -159,7 +221,7 @@ export default function ProductDetail() {
           <div className="mb-6">
             <h2 className="text-gray-700 font-semibold mb-2">Usuarios Asociados</h2>
             <div className="flex flex-wrap gap-2">
-              {product.usuarioproducto.length > 0 ? (
+              {product?.usuarioproducto && product.usuarioproducto.length > 0 ? (
                 product.usuarioproducto.map((up, index) => (
                   <span
                     key={index}
@@ -176,28 +238,91 @@ export default function ProductDetail() {
         </div>
 
         {/* Botones de acción */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex gap-4">
           <button
-            onClick={() => alert('Función de editar por implementar')}
-            className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+            onClick={openEditModal}
+            disabled={isSubmitting}
+            className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Editar Producto
+            {isSubmitting ? 'Procesando...' : 'Editar Producto'}
           </button>
           <button
             onClick={handleDelete}
-            className="flex-1 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition"
+            disabled={isSubmitting}
+            className="flex-1 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Eliminar Producto
+            {isSubmitting ? 'Eliminando...' : 'Eliminar Producto'}
           </button>
         </div>
 
-        {/* Nota para el equipo */}
-        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p className="text-yellow-800 text-sm">
-            <strong>Nota para el equipo:</strong> El botón "Editar" está pendiente de implementar.
-            Debes crear un formulario modal o página aparte para editar el producto usando la API PUT.
-          </p>
-        </div>
+        {isEditModalOpen && product && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="bg-blue-600 text-white p-6 rounded-t-lg">
+                <h2 className="text-2xl font-bold">Editar Producto</h2>
+                <p className="text-blue-100 mt-1">ID: {product.id}</p>
+              </div>
+
+              <form onSubmit={handleEdit} className="p-6">
+                <div className="mb-6">
+                  <label htmlFor="name" className="block text-gray-700 font-semibold mb-2">
+                    Nombre del Producto <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    placeholder="Ej: iPhone 15 Pro Max"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label htmlFor="description" className="block text-gray-700 font-semibold mb-2">
+                    Descripción
+                  </label>
+                  <textarea
+                    id="description"
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    placeholder="Descripción opcional del producto..."
+                    rows={4}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                  <p className="text-yellow-800 text-sm">
+                    <strong>Nota:</strong> Solo puedes editar el nombre y descripción. 
+                    Las categorías, fabricantes y usuarios asociados requieren funcionalidad adicional.
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    disabled={isSubmitting}
+                    className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !editForm.name.trim()}
+                    className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
