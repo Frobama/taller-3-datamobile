@@ -9,8 +9,22 @@ interface Product {
   name: string
   description: string | null
   categoriaproducto: { categoria: { name: string } }[]
-  productofabricante: { fabricante: { name: string } }[]
-  usuarioproducto: { usuario: { username: string } }[]
+  productofabricante: { fabricante: { id: number; name: string } }[]
+  usuarioproducto: { usuario: { id: number; username: string } }[]
+}
+
+interface Categoria {
+  name: string
+}
+
+interface Fabricante {
+  id: number
+  name: string
+}
+
+interface Usuario {
+  id: number
+  username: string
 }
 
 export default function ProductDetail() {
@@ -24,9 +38,17 @@ export default function ProductDetail() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editForm, setEditForm] = useState({
     name: '',
-    description: ''
+    description: '',
+    categorias: [] as string[],
+    fabricantes: [] as number[],
+    usuarios: [] as number[]
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Listas disponibles para selects
+  const [categoriasDisponibles, setCategoriasDisponibles] = useState<Categoria[]>([])
+  const [fabricantesDisponibles, setFabricantesDisponibles] = useState<Fabricante[]>([])
+  const [usuariosDisponibles, setUsuariosDisponibles] = useState<Usuario[]>([])
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -39,7 +61,10 @@ export default function ProductDetail() {
         setProduct(data)
         setEditForm({
           name: data.name,
-          description: data.description || ''
+          description: data.description || '',
+          categorias: data.categoriaproducto.map((cp: any) => cp.categoria.name),
+          fabricantes: data.productofabricante.map((pf: any) => pf.fabricante.id),
+          usuarios: data.usuarioproducto.map((up: any) => up.usuario.id)
         })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar producto')
@@ -50,6 +75,33 @@ export default function ProductDetail() {
 
     fetchProduct()
   }, [params.id])
+
+  // Cargar listas disponibles
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [categoriasRes, fabricantesRes, usuariosRes] = await Promise.all([
+          fetch('/api/categorias'),
+          fetch('/api/fabricantes'),
+          fetch('/api/usuarios')
+        ])
+
+        if (categoriasRes.ok) {
+          setCategoriasDisponibles(await categoriasRes.json())
+        }
+        if (fabricantesRes.ok) {
+          setFabricantesDisponibles(await fabricantesRes.json())
+        }
+        if (usuariosRes.ok) {
+          setUsuariosDisponibles(await usuariosRes.json())
+        }
+      } catch (err) {
+        console.error('Error loading options:', err)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   const handleDelete = async () => {
     if (!confirm('¿Estás seguro de eliminar este producto?\n\nEsta acción no se puede deshacer.')) return
@@ -92,6 +144,9 @@ export default function ProductDetail() {
         body: JSON.stringify({
           name: editForm.name.trim(),
           description: editForm.description.trim() || null,
+          categorias: editForm.categorias,
+          fabricantes: editForm.fabricantes,
+          usuarios: editForm.usuarios
         }),
       })
 
@@ -115,7 +170,10 @@ export default function ProductDetail() {
     if (product) {
       setEditForm({
         name: product.name,
-        description: product.description || ''
+        description: product.description || '',
+        categorias: product.categoriaproducto.map(cp => cp.categoria.name),
+        fabricantes: product.productofabricante.map(pf => pf.fabricante.id),
+        usuarios: product.usuarioproducto.map(up => up.usuario.id)
       })
       setIsEditModalOpen(true)
     }
@@ -295,11 +353,79 @@ export default function ProductDetail() {
                   />
                 </div>
 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                  <p className="text-yellow-800 text-sm">
-                    <strong>Nota:</strong> Solo puedes editar el nombre y descripción. 
-                    Las categorías, fabricantes y usuarios asociados requieren funcionalidad adicional.
-                  </p>
+                <div className="mb-6">
+                  <label htmlFor="categorias" className="block text-gray-700 font-semibold mb-2">
+                    Categorías
+                  </label>
+                  <select
+                    multiple
+                    id="categorias"
+                    value={editForm.categorias}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions, option => option.value)
+                      setEditForm({ ...editForm, categorias: selected })
+                    }}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    size={5}
+                    disabled={isSubmitting}
+                  >
+                    {categoriasDisponibles.map((cat) => (
+                      <option key={cat.name} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Mantén Ctrl/Cmd presionado para seleccionar múltiples</p>
+                </div>
+
+                <div className="mb-6">
+                  <label htmlFor="fabricantes" className="block text-gray-700 font-semibold mb-2">
+                    Fabricantes
+                  </label>
+                  <select
+                    multiple
+                    id="fabricantes"
+                    value={editForm.fabricantes.map(String)}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions, option => parseInt(option.value))
+                      setEditForm({ ...editForm, fabricantes: selected })
+                    }}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    size={5}
+                    disabled={isSubmitting}
+                  >
+                    {fabricantesDisponibles.map((fab) => (
+                      <option key={fab.id} value={fab.id}>
+                        {fab.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Mantén Ctrl/Cmd presionado para seleccionar múltiples</p>
+                </div>
+
+                <div className="mb-6">
+                  <label htmlFor="usuarios" className="block text-gray-700 font-semibold mb-2">
+                    Usuarios Asociados
+                  </label>
+                  <select
+                    multiple
+                    id="usuarios"
+                    value={editForm.usuarios.map(String)}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions, option => parseInt(option.value))
+                      setEditForm({ ...editForm, usuarios: selected })
+                    }}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    size={5}
+                    disabled={isSubmitting}
+                  >
+                    {usuariosDisponibles.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.username}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Mantén Ctrl/Cmd presionado para seleccionar múltiples</p>
                 </div>
 
                 <div className="flex gap-3">

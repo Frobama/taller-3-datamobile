@@ -55,7 +55,7 @@ export async function GET(
   }
 }
 
-// PUT - Actualizar un producto
+// PUT - Actualizar un producto con relaciones
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -64,7 +64,7 @@ export async function PUT(
     const { id: idParam } = await params
     const id = parseInt(idParam)
     const body = await request.json()
-    const { name, description } = body
+    const { name, description, categorias, fabricantes, usuarios } = body
 
     if (isNaN(id)) {
       return NextResponse.json(
@@ -73,7 +73,8 @@ export async function PUT(
       )
     }
 
-    const producto = await prisma.producto.update({
+    // Actualizar producto base
+    await prisma.producto.update({
       where: { id },
       data: {
         name: name || undefined,
@@ -81,7 +82,80 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json(producto)
+    // Actualizar categorías si se proporcionan
+    if (categorias !== undefined && Array.isArray(categorias)) {
+      // Eliminar relaciones existentes
+      await prisma.categoriaproducto.deleteMany({
+        where: { id_producto: id },
+      })
+      // Crear nuevas relaciones
+      if (categorias.length > 0) {
+        await prisma.categoriaproducto.createMany({
+          data: categorias.map((categoria: string) => ({
+            id_producto: id,
+            id_categoria: categoria,
+          })),
+        })
+      }
+    }
+
+    // Actualizar fabricantes si se proporcionan
+    if (fabricantes !== undefined && Array.isArray(fabricantes)) {
+      // Eliminar relaciones existentes
+      await prisma.productofabricante.deleteMany({
+        where: { id_producto: id },
+      })
+      // Crear nuevas relaciones
+      if (fabricantes.length > 0) {
+        await prisma.productofabricante.createMany({
+          data: fabricantes.map((fabricanteId: number) => ({
+            id_producto: id,
+            id_fabricante: fabricanteId,
+          })),
+        })
+      }
+    }
+
+    // Actualizar usuarios si se proporcionan
+    if (usuarios !== undefined && Array.isArray(usuarios)) {
+      // Eliminar relaciones existentes
+      await prisma.usuarioproducto.deleteMany({
+        where: { id_producto: id },
+      })
+      // Crear nuevas relaciones
+      if (usuarios.length > 0) {
+        await prisma.usuarioproducto.createMany({
+          data: usuarios.map((usuarioId: number) => ({
+            id_producto: id,
+            id_usuario: usuarioId,
+          })),
+        })
+      }
+    }
+
+    // Retornar producto actualizado con relaciones
+    const productoActualizado = await prisma.producto.findUnique({
+      where: { id },
+      include: {
+        categoriaproducto: {
+          include: {
+            categoria: true,
+          },
+        },
+        productofabricante: {
+          include: {
+            fabricante: true,
+          },
+        },
+        usuarioproducto: {
+          include: {
+            usuario: true,
+          },
+        },
+      },
+    })
+
+    return NextResponse.json(productoActualizado)
   } catch (error) {
     console.error('Error updating producto:', error)
     return NextResponse.json(
