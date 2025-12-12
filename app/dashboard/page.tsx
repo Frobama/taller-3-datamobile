@@ -72,6 +72,8 @@ export default function Dashboard() {
   }, [products, filters])
 
   // Datos para gráficos
+
+  // 1. Gráfico de Barras - Productos por Categoría
   const categoriesData = useMemo(() => {
     const counts: Record<string, number> = {}
     filteredProducts.forEach((p) => {
@@ -82,6 +84,7 @@ export default function Dashboard() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }))
   }, [filteredProducts])
 
+  // 2. Gráfico de Líneas - Productos por Fabricante
   const fabricantesData = useMemo(() => {
     const counts: Record<string, number> = {}
     filteredProducts.forEach((p) => {
@@ -89,7 +92,35 @@ export default function Dashboard() {
         counts[pf.fabricante.name] = (counts[pf.fabricante.name] || 0) + 1
       })
     })
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8) // Top 8 fabricantes
+  }, [filteredProducts])
+
+  // 3. Gráfico de Pie - Distribución por Usuario
+  const usuariosData = useMemo(() => {
+    const counts: Record<string, number> = {}
+    filteredProducts.forEach((p) => {
+      p.usuarioproducto.forEach((up) => {
+        counts[up.usuario.username] = (counts[up.usuario.username] || 0) + 1
+      })
+    })
     return Object.entries(counts).map(([name, value]) => ({ name, value }))
+  }, [filteredProducts])
+
+  // 4. Gráfico de Área - Top 5 Categorías con más productos
+  const topCategoriesData = useMemo(() => {
+    const counts: Record<string, number> = {}
+    filteredProducts.forEach((p) => {
+      p.categoriaproducto.forEach((cp) => {
+        counts[cp.categoria.name] = (counts[cp.categoria.name] || 0) + 1
+      })
+    })
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5)
   }, [filteredProducts])
 
   // Extraer categorías y fabricantes únicos
@@ -131,14 +162,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Gráfico */}
+        {/* Gráficos */}
         <div className="mb-6">
           <ChartCarousel
             items={[
               { id: 'bar', node: <ProductBarChart data={categoriesData} /> },
-              { id: 'area', node: <Areachart data={categoriesData} /> },
-              { id: 'pie', node: <PieChart data={fabricantesData} /> },
-              { id: 'line', node: <LineChart data={categoriesData} /> },
+              { id: 'line', node: <LineChart data={fabricantesData} /> },
+              { id: 'pie', node: <PieChart data={usuariosData} /> },
+              { id: 'area', node: <Areachart data={topCategoriesData} /> },
             ]}
           />
         </div>

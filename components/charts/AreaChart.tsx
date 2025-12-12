@@ -9,7 +9,7 @@ interface AreaChartProps {
 export default function ProductAreaChart({ data }: AreaChartProps) {
   return (
     <div className="w-full h-80 bg-white p-4 rounded-lg shadow">
-      <h3 className="text-lg font-semibold mb-4">Tendencia por Categoría</h3>
+      <h3 className="text-lg font-semibold mb-4">Top 5 Categorías Más Populares</h3>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />

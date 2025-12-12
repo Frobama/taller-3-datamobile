@@ -9,7 +9,7 @@ interface LineChartProps {
 export default function ProductLineChart({ data }: LineChartProps) {
   return (
     <div className="w-full h-80 bg-white p-4 rounded-lg shadow">
-      <h3 className="text-lg font-semibold mb-4">Evolución por Categoría</h3>
+      <h3 className="text-lg font-semibold mb-4">Top 8 Fabricantes</h3>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
