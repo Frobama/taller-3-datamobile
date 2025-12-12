@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '@/store/store'
 import { setProducts, setLoading, setError } from '@/store/slices/productsSlice'
@@ -10,12 +10,14 @@ import Areachart from '@/components/charts/AreaChart'
 import PieChart from '@/components/charts/PieChart'
 import LineChart from '@/components/charts/LineChart'
 import ChartCarousel from '@/components/charts/ChartCarousel'
+import CreateProductForm from '@/components/forms/CreateProductForm'
 import Link from 'next/link'
 
 export default function Dashboard() {
   const dispatch = useDispatch()
   const { items: products, loading } = useSelector((state: RootState) => state.products)
   const filters = useSelector((state: RootState) => state.filters)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   // Cargar productos
   useEffect(() => {
@@ -31,6 +33,18 @@ export default function Dashboard() {
     }
     fetchProducts()
   }, [dispatch])
+
+  // Función para recargar productos
+  const reloadProducts = async () => {
+    dispatch(setLoading(true))
+    try {
+      const response = await fetch('/api/productos')
+      const data = await response.json()
+      dispatch(setProducts(data))
+    } catch (error) {
+      dispatch(setError('Error al cargar productos'))
+    }
+  }
 
   // Filtrar y ordenar productos
   const filteredProducts = useMemo(() => {
@@ -135,10 +149,27 @@ export default function Dashboard() {
     [products]
   )
 
-  const fabricantes = useMemo(
+  // Para FilterPanel - solo nombres
+  const fabricantesNames = useMemo(
     () => {
       if (!Array.isArray(products)) return []
       return [...new Set(products.flatMap((p) => p.productofabricante.map((pf) => pf.fabricante.name)))]
+    },
+    [products]
+  )
+
+  // Para CreateProductForm - objetos con id y name
+  const fabricantesWithId = useMemo(
+    () => {
+      if (!Array.isArray(products)) return []
+      const fabricantesMap = new Map<number, string>()
+      products.forEach((p) => {
+        p.productofabricante.forEach((pf) => {
+          const fab = pf.fabricante as any
+          fabricantesMap.set(fab.id, fab.name)
+        })
+      })
+      return Array.from(fabricantesMap.entries()).map(([id, name]) => ({ id, name }))
     },
     [products]
   )
@@ -150,10 +181,19 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 text-black">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Dashboard - DataMobile</h1>
+        {/* Header con botón crear */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Dashboard - DataMobile</h1>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+          >
+            ➕ Crear Producto
+          </button>
+        </div>
 
         {/* Filtros */}
-        <FilterPanel categorias={categorias} fabricantes={fabricantes} />
+        <FilterPanel categorias={categorias} fabricantes={fabricantesNames} />
 
         {/* Métricas principales */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -167,7 +207,7 @@ export default function Dashboard() {
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-gray-500 text-sm">Fabricantes</h3>
-            <p className="text-3xl font-bold">{fabricantes.length}</p>
+            <p className="text-3xl font-bold">{fabricantesNames.length}</p>
           </div>
         </div>
 
@@ -219,6 +259,16 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
+
+        {/* Modal de creación */}
+        {isCreateModalOpen && (
+          <CreateProductForm
+            onClose={() => setIsCreateModalOpen(false)}
+            onSuccess={reloadProducts}
+            categorias={categorias}
+            fabricantes={fabricantesWithId}
+          />
+        )}
       </div>
     </div>
   )

@@ -1,6 +1,13 @@
-# DataMobile Dashboard
+# Taller 3 - DataMobile Dashboard
 
 Aplicación web móvil para visualización de datos dinámicos con Next.js, Redux Toolkit y Prisma conectado a Supabase.
+
+## Grupo 13 - Integrantes
+
+- **Andrés Hidalgo Ramallo RUT: 21.795.550-5**
+- **Benjamín Torres Inostroza RUT: 21.695.589-7**
+- **Benjamín Rojas Espejo RUT: 21.742.522-0**
+- **Maximiliano Urrutia Araya RUT: 21.573.565-6**
 
 ## 📋 Requisitos Previos
 
@@ -94,38 +101,6 @@ taller-3-datamobile/
 │       └── filtersSlice.ts     # Estado de filtros
 └── prisma.config.ts
 ```
-
-## ✅ Funcionalidades Implementadas
-
-- ✅ Next.js 14+ con App Router
-- ✅ API CRUD completa (GET, POST, PUT, DELETE)
-- ✅ Redux Toolkit para gestión de estado
-- ✅ Conexión a Supabase con Prisma ORM
-- ✅ Dashboard con filtros dinámicos
-- ✅ Filtros persistentes (búsqueda, categoría, fabricante, ordenamiento)
-- ✅ Métricas (KPIs)
-- ✅ Tabla de productos con relaciones
-- ✅ 1 gráfico de barras (Recharts)
-
-## 🚧 Pendiente (Para el Equipo)
-
-- [ ] `components/charts/LineChart.tsx` - Gráfico de líneas
-- [ ] `components/charts/PieChart.tsx` - Gráfico circular
-- [ ] `components/charts/AreaChart.tsx` - Gráfico de área
-- [ ] `components/charts/RadarChart.tsx` - Gráfico de radar
-- [ ] Integrar los 4 gráficos en `app/dashboard/page.tsx`
-- [ ] Crear `app/productos/[id]/page.tsx`
-- [ ] Mostrar información completa del producto
-- [ ] Botones para editar/eliminar
-- [ ] Diseño responsivo
-- [ ] Formulario para crear productos
-- [ ] Formulario para editar productos
-- [ ] Botón de eliminar con confirmación
-- [ ] Validación de formularios
-- [ ] Optimizar dashboard para móviles
-- [ ] Menú hamburguesa para filtros en móvil
-- [ ] Cards responsivas
-- [ ] Mejorar UX en tablets
 
 ## 🛠️ Tecnologías
 
